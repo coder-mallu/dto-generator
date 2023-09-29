@@ -27,7 +27,7 @@ const getSwaggerDecorator = (valKey, val) => {
   return '@ApiProperty()';
 };
 
-const dtoArrray = [];
+let dtoArrray = [];
 
 const generate = (val, name = 'BaseDto') => {
   const valCheck = checkValue(val);
@@ -79,6 +79,8 @@ const generateDto = (value) => {
     stringValue = `${stringValue}
 ${index}`;
   });
+
+  dtoArrray = [];
 
   return stringValue;
 };

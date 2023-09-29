@@ -1,41 +1,62 @@
-// @mui
+/* eslint-disable no-sequences */
+/* eslint-disable no-return-assign */
+import React, { useState, useCallback, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import Grid from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import CodeMirror from '@uiw/react-codemirror';
-import { useRef, useState } from 'react';
-import { json as jsonLang } from '@codemirror/lang-json';
-import { javascript } from '@codemirror/lang-javascript';
 import Stack from '@mui/material/Stack';
 import { IconButton } from '@mui/material';
 import FileCopyIcon from '@mui/icons-material/FileCopyOutlined';
+import { json as jsonLang } from '@codemirror/lang-json';
+import { javascript } from '@codemirror/lang-javascript';
 import { generateDto } from '../../../utils/dto';
-
-// ----------------------------------------------------------------------
 
 const getURLParameters = (url) =>
   (url.match(/([^?=&]+)(=([^&]*))/g) || []).reduce(
-    // eslint-disable-next-line no-return-assign, no-sequences
     (a, v) => ((a[v.slice(0, v.indexOf('='))] = v.slice(v.indexOf('=') + 1)), a),
     {}
   );
 
-export default function PaymentView() {
+const isJSON = (value) => {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
+const PaymentView = () => {
   const param = getURLParameters(window.location.href);
-  const cmRef = useRef(null);
-  const [code, setCode] = useState(decodeURIComponent(param.json || ''));
+  const [code] = useState(decodeURIComponent(param.json || ''));
   const [dtoCode, setDtoCode] = useState('');
+  const [error, setError] = useState(false);
+  const cmRef = useRef(null);
 
-  const setJson = (value) => {
-    setCode(value);
-
-    console.log({ value });
+  const setJson = useCallback((value) => {
     if (value !== '') {
-      const data = generateDto(JSON.parse(value));
-      setDtoCode(data);
-    } else setDtoCode('');
-  };
+      if (!isJSON(value)) {
+        setError(true);
+        setDtoCode('');
+      } else {
+        const data = generateDto(JSON.parse(value));
+        console.log(data);
+        setError(false);
+        setDtoCode(data);
+      }
+    } else {
+      setError(false);
+      setDtoCode('');
+    }
+  }, []);
+
+  const handleCopyDTO = useCallback(() => {
+    if (dtoCode !== '') {
+      navigator.clipboard.writeText(dtoCode);
+    }
+  }, [dtoCode]);
 
   return (
     <Container
@@ -49,12 +70,8 @@ export default function PaymentView() {
         {`🚀 Convert your JSONs to DTOs 🚀`}
       </Typography>
 
-      {/* <Typography align="center" sx={{ color: 'text.secondary', mb: 2 }}>
-        Professional plan is right for you.
-      </Typography> */}
-
       <Grid container rowSpacing={{ xs: 3, md: 0 }} columnSpacing={{ xs: 0, md: 3 }}>
-        <Grid xs={12} md={12}>
+        <Grid item xs={12} md={12}>
           <Box
             gap={5}
             display="grid"
@@ -78,32 +95,30 @@ export default function PaymentView() {
                     ref={cmRef}
                     height="28rem"
                     width="35rem"
-                    style={{ height: '100%', width: '100%' }}
+                    style={{
+                      height: '100%',
+                      width: '100%',
+                    }}
                     basicSetup={{ lineNumbers: false }}
                     extensions={[jsonLang()]}
-                    onChange={(value) => {
-                      setJson(value);
-                    }}
+                    onChange={setJson}
                   />
                 </div>
               </Stack>
+              {error && (
+                <Typography align="center" sx={{ color: 'red', mt: 1.5 }}>
+                  JSON Validation Error: Please review and correct your input.
+                </Typography>
+              )}
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 0 }}>
                 <Typography variant="h6">DTO</Typography>
-                <IconButton
-                  onClick={() => {
-                    if (dtoCode !== '') {
-                      navigator.clipboard.writeText(dtoCode);
-                    }
-                  }}
-                  sx={{ ml: 1 }}
-                >
+                <IconButton onClick={handleCopyDTO} sx={{ ml: 1 }}>
                   <FileCopyIcon />
                 </IconButton>
               </div>
-
-              <Stack spacing={3} style={{ marginTop: '10px' }}>
+              <Stack spacing={3} style={{ marginTop: '11px' }}>
                 <div style={{ width: '100%', overflow: 'auto', borderRadius: '0.5rem' }}>
                   <CodeMirror
                     theme={'dark'}
@@ -121,17 +136,9 @@ export default function PaymentView() {
             </div>
           </Box>
         </Grid>
-
-        {/* <Grid xs={12} md={4}>
-          <PaymentSummary />
-        </Grid> */}
-
-        {/* <Grid xs={12} md={12} sx={{ marginTop: '2rem' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Button variant="outlined">Generate</Button>
-          </div>
-        </Grid> */}
       </Grid>
     </Container>
   );
-}
+};
+
+export default PaymentView;
